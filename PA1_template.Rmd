@@ -5,42 +5,55 @@ output: html_document
 
 #Loading and preprocessing the data
 
-```{r libload, cache = TRUE, results='hide', echo=TRUE}
+Over and above the normal data load, I feel that the interval value needs to be converted to an index value from 1 to 288 to reflect the 288 5-minute time 'slices' per day. That was done in this section. I also created a baseline dataset for non-imputed NAs (data) and imputed NAs (data1), respectively.
+
+```{r libload, cache=TRUE, results='hide', echo=TRUE}
+
 library(plyr)
 library(dplyr)
 library(data.table)
 library(knitr)
 
-knitr::opts_chunk$set(fig.width = 7, fig.height = 5, fig.path = "figure")
+knitr::opts_chunk$set(cache = TRUE, fig.width = 7, fig.height = 5, fig.path = "fig-")
 
 setwd('~/documents/reproducible_research/week2')
-#setwd('k:/reproducible_research')
-data <- unzip("../repdata_data_activity.zip")
+data <- unzip("repdata_data_activity.zip")
 data <- read.csv(data, header=T, sep=",", na.strings = "NA", stringsAsFactors = F)
 data <- as.data.frame(data)
 names(data) <- c("steps","date","interval")
 data <- data[ ,c(2,1,3)]
+
+#convert 'interval' to an index from 1 to 288 (288 is the total number of 5-minute intervals in a 24-hour period)
 data1 <- as.data.frame(data)
+data_gp <- group_by(data, date)
+
+m <- nrow(data)
+n <- rep(1:288, times = 61)
+
+for (o in 1:m) 
+  data_gp[o,]$interval[1] <- n[o]
+
+data <- as.data.frame(data_gp) #baseline dataset where NAs will not be imputed
+data1 <- data #baseline dataset where NAs will be imputed
 ```
 
 
 #What is mean total number of steps taken per day?
 
-```{r mean_steps_day, results=TRUE, cache=TRUE, echo=TRUE}
-stp <- as.vector(data$steps)
+```{r mean_steps_day, results=TRUE, cache= TRUE, echo=TRUE}
+stp <- data$steps
 stpn <- length(stp) #total number of records in dataset including NAs
 stp1 <- na.omit(stp) #omit NAs from data
 stpn1 <- length(stp1) #number of records after omitting NAs
-ttlna <- stpn - stpn1 #total NAs in dataset
-ms <- mean(stp1) #mean value of steps in dataset after omitting NAs
 
+ms <- mean(stp1) #mean value of steps in dataset after omitting NAs
 data <- na.omit(data) #strip all NAs from data
-data <- arrange(data, date, steps)
-data_gp <- group_by(data, date)
+#data <- arrange(data, date, steps)
+data_gp <- group_by(data, date) #redo the group by command after omitting NAs
 ```
 
 
-Calculate the total number of steps taken per day, omitting NAs
+Here is the total number of steps taken per day, ignoring (omitting) NAs. In this dataframe, we only have 53 records out of the full dataset with 61 dates. That's because 8 of the dates do not have any intervals with a step value--they're all NAs. 
 
 ```{r total_steps_day, results=TRUE, cache=TRUE, echo=TRUE}
 data_gp_sum  <- summarise(data_gp, sum(steps))
@@ -48,16 +61,16 @@ print(as.data.frame(data_gp_sum))
 ```
 
 
-Make a histogram of the total number of steps taken each day
+Here is a histogram of the total number of steps taken each day when ignoring NAs. Most (frequency 25) cluster around taking between 10,000 and 15,000 steps per day.  
 
 ```{r hist_steps_day, cache = TRUE, results=TRUE, echo=TRUE}
 names(data_gp_sum) <- c("date","sum_steps")
-xsum <- data_gp_sum$sum_steps
-hist(xsum, xlab = "Total number of steps each day (NAs are not imputed)")
+data_sum <- data_gp_sum$sum_steps
+hist(data_sum, xlab = "Total number of steps each day (NAs are not imputed)")
 ```
 
 
-Calculate and report the mean and median of the total number of steps taken per day
+Below are reports of the mean and median of the total number of steps taken per day (mean/median steps taken per interval).
 
 ```{r mean_median_steps_day, cache = TRUE, results=TRUE, echo=TRUE}
 
@@ -70,7 +83,7 @@ print(as.data.frame(data_gp_median))
 
 #What is the average daily activity pattern?
 
-Make a time series plot (i.e. 𝚝𝚢𝚙𝚎 = "𝚕") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+This is a time series plot (i.e. 𝚝𝚢𝚙𝚎 = "𝚕") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis).
 
 ```{r daily_activity_1, cache = TRUE, results=TRUE, echo=TRUE}
 
@@ -83,10 +96,10 @@ names(data_gp1_mean) <- cols
 dt_gp1_int <- data_gp1_mean$interval
 dt_gp1_steps <- data_gp1_mean$mean_steps
 
-plot.ts(dt_gp1_int, dt_gp1_steps, type = "l", xlab = "Interval", ylab = "Mean number of steps")
+plot.ts(dt_gp1_int, dt_gp1_steps, type = "l", xlab = "Index of 5-minute intervals", ylab = "Mean number of steps per interval")
 ```
 
-Which 5-minute interval on average across all the days in the dataset, contains the maximum number of steps?
+The code below produces the 5-minute interval on average across all the days in the dataset which contains the maximum number of steps? It occurs in the 104th interval (around 9 a.m.) where the number of steps averages over 200.
 
 ```{r daily_activity_2, cache = TRUE, results=TRUE, echo=TRUE}
 
@@ -98,17 +111,20 @@ print(data_gp1_mean[q,])
 
 #Imputing missing values
 
-Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with 𝙽𝙰s)
+The goal of this section is to create a new dataset that is equal to the original dataset but with the missing data filled in. First, we'll calculate and report the total number of missing values in the dataset, i.e. the total number of rows with NAs.
+
 ```{r total_NAs, cache = TRUE, results=TRUE, echo=TRUE}
 
-print(ttlna)
+ttlna <- stpn - stpn1 #total NAs in dataset
+print(ttlna) # total NAs in the dataset
+print(ttlna/stpn) # percentage of dataset that is NA  
 ```
 
-My imputation strategy is use the mean for a given date if a mean is available. However, there are dates for which the step value for every interval is NA--no step value is observed at all for that date.
+As you can see, the ratio of NAs to the total dataset is significant at around 13%. 
+
+My imputation strategy is to use the mean for a given date if a mean is available. However, there are dates for which the step value for every interval is NA--no step value is observed at all for that date.
 
 For these dates I will use the mean step value of the dataset as a whole (i.e. 37.3826) to apply to each interval, randomly rounded up or down to the nearest integer.
-
-Create a new dataset that is equal to the original dataset but with the missing data filled in.
 
 ```{r create_dataset, cache = TRUE, results=TRUE, echo=TRUE}
 
@@ -143,10 +159,9 @@ for(i in 1:m)
 
 data1 <- dt1[c(1,2,3)]
 summary(data1)
-
 ```
 
-Make a histogram of the total number of steps taken each day once NA values are imputed. 
+Here is a histogram of the total number of steps taken each day once NA values are imputed. 
 
 ```{r hist_total_steps, cache= TRUE, results=TRUE, echo=TRUE}
 
@@ -158,41 +173,38 @@ ysum <- data1_gp_sum$sum_steps
 hist(ysum, xlab = "Total number of steps each day (NAs are imputed)")
 ```
 
+As we've essentially added 8 more days worth of steps, we have more "buckets". The frequency value from 10,000 to 15,000 total steps has jumped from 25 to 35. 
 
-Calculate and report the mean and median total number of steps taken per day.
+Now we'll re-calculate and report the mean and median total number of steps taken per day with the NA values imputed.
 
 ```{r mean_median_total_steps, cache = TRUE, results=TRUE, echo=TRUE}
 
 data1_gp_mean <- summarise(data1_gp, mean(steps))
 data1_gp_median <- summarise(data1_gp, median(steps))
 
-print(as.data.frame(data1_gp_mean))
-print(as.data.frame(data1_gp_median))
+print(as.data.frame(data1_gp_mean)) #mean imputed
+print(as.data.frame(data1_gp_median)) #median imputed
 ```
-
 
 Do these values differ from the estimates from the first part of the assignment? 
 
 ```{r summaries_imputing_not_imputing, cache = TRUE, results=TRUE, echo=TRUE}
 
-summary(data)
-summary(data1)
-
+summary(data) #NAs not imputed
+summary(data1) #NAs imputed
 ```
 
-What is the impact of imputing missing data on the estimates of the total daily number of steps?
+You can see that the summaries are not appreciably different (except for the 3rd quarter median). But the impact of imputing missing data on the estimates of the total daily number of steps is shown below. As you would expecting, imputing a value to steps when NA significantly increases the total number of steps for taken for all days. 
 
 ```{r compare_total_steps_imputing_not_imputing, cache = TRUE, results=TRUE, echo=TRUE}
 
-print(data_sum <- sum(data$steps))
-print(data1_sum <- sum(data1$steps))
+print(data_sum <- sum(data$steps)) #mean steps per day without imputing NAs
+print(data1_sum <- mean(data1$steps)) # mean steps per day when imputing NAs
 ```
-
-
 
 #Are there differences in activity patterns between weekdays and weekends?
 
-Create a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
+I'm adding a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
 
 ```{r create_day_type, cache = TRUE, results=TRUE, echo=TRUE}
 
@@ -207,8 +219,7 @@ for(j in 1:m) {
 }
 ```
 
-
-Make a panel plot containing a time series plot (i.e. 𝚝𝚢𝚙𝚎 = "𝚕") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). 
+Finally, below is a panel plot containing a time series plot (i.e. 𝚝𝚢𝚙𝚎 = "𝚕") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). 
 
 ```{r create_panel_plot, cache = TRUE, results=TRUE, echo=TRUE, fig.height=10}
 
@@ -233,8 +244,10 @@ dt_wd_steps <- dt_gp_wd_mean$mean_steps
 
 par(mfrow=c(2,1))
 
-plot.ts(dt_we_int, dt_we_steps, plot.type = "single", type = "l", main = "Weekend", xlab = "interval", ylab = "number of steps")
-plot.ts(dt_wd_int, dt_wd_steps, plot.type = "single", type = "l", main = "Weekday", xlab = "Interval", ylab = "number of steps")
+plot.ts(dt_we_int, dt_we_steps, plot.type = "single", type = "l", main = "Weekend", xlab = "Index of 5-Minute Intervals", ylab = "Mean No. of Steps")
+plot.ts(dt_wd_int, dt_wd_steps, plot.type = "single", type = "l", main = "Weekday", xlab = "Index of 5-Mintue Intervals", ylab = "Mean No. of Steps")
 ```
+
+As you can see there is greater variability of when steps are taken during the day during the weekend, as compared to a weekday, when it appears to be concentrated around the morning rush hour.
 
 

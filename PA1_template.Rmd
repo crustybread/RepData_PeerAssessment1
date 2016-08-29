@@ -14,7 +14,7 @@ library(dplyr)
 library(data.table)
 library(knitr)
 
-knitr::opts_chunk$set(cache = TRUE, fig.width = 7, fig.height = 5, fig.path = "fig-")
+knitr::opts_chunk$set(cache = TRUE, fig.width = 7, fig.height = 5, fig.path = "figure-")
 
 setwd('~/documents/reproducible_research/week2')
 data <- unzip("repdata_data_activity.zip")
@@ -66,9 +66,8 @@ Here is a histogram of the total number of steps taken each day when ignoring NA
 ```{r hist_steps_day, cache = TRUE, results=TRUE, echo=TRUE}
 names(data_gp_sum) <- c("date","sum_steps")
 data_sum <- data_gp_sum$sum_steps
-hist(data_sum, xlab = "Total number of steps each day (NAs are not imputed)")
+hist(data_sum, main = "Total Steps Per Day", xlab = "Total number of steps each day (NAs are not imputed)")
 ```
-
 
 Below are reports of the mean and median of the total number of steps taken per day (mean/median steps taken per interval).
 
@@ -79,7 +78,6 @@ data_gp_median <- summarise(data_gp, median(steps))
 print(as.data.frame(data_gp_mean))
 print(as.data.frame(data_gp_median))
 ```
-
 
 #What is the average daily activity pattern?
 
@@ -107,7 +105,6 @@ names(data_gp1_mean) <- c("interval", "mean_steps")
 q <- which.max(data_gp1_mean$mean_steps)
 print(data_gp1_mean[q,])
 ```
-
 
 #Imputing missing values
 
@@ -170,7 +167,7 @@ data1_gp_sum  <- summarise(data1_gp, sum(steps))
 
 names(data1_gp_sum) <- c("date","sum_steps")
 ysum <- data1_gp_sum$sum_steps
-hist(ysum, xlab = "Total number of steps each day (NAs are imputed)")
+hist(ysum, main = "Total Steps Per Day", xlab = "Total number of steps each day (NAs are imputed)")
 ```
 
 As we've essentially added 8 more days worth of steps, we have more "buckets". The frequency value from 10,000 to 15,000 total steps has jumped from 25 to 35. 
@@ -186,7 +183,7 @@ print(as.data.frame(data1_gp_mean)) #mean imputed
 print(as.data.frame(data1_gp_median)) #median imputed
 ```
 
-Do these values differ from the estimates from the first part of the assignment? 
+So, does imputing data to the NAs to the second part of the exercise appreciably affect the estimates when compared to the first part of the assignment? 
 
 ```{r summaries_imputing_not_imputing, cache = TRUE, results=TRUE, echo=TRUE}
 
@@ -194,7 +191,7 @@ summary(data) #NAs not imputed
 summary(data1) #NAs imputed
 ```
 
-You can see that the summaries are not appreciably different (except for the 3rd quarter median). But the impact of imputing missing data on the estimates of the total daily number of steps is shown below. As you would expecting, imputing a value to steps when NA significantly increases the total number of steps for taken for all days. 
+You can see that the summaries are not much different (except for the 3rd quarter median). But the impact of imputing missing data did affect the total daily number of steps, as shown below. As you would expect, imputing  values which were formerly NA significantly increases the total number of steps for taken for all days. 
 
 ```{r compare_total_steps_imputing_not_imputing, cache = TRUE, results=TRUE, echo=TRUE}
 
@@ -248,6 +245,4 @@ plot.ts(dt_we_int, dt_we_steps, plot.type = "single", type = "l", main = "Weeken
 plot.ts(dt_wd_int, dt_wd_steps, plot.type = "single", type = "l", main = "Weekday", xlab = "Index of 5-Mintue Intervals", ylab = "Mean No. of Steps")
 ```
 
-As you can see there is greater variability of when steps are taken during the day during the weekend, as compared to a weekday, when it appears to be concentrated around the morning rush hour.
-
-
+As you can see, weekends exhibit greater variability compared to weekdays, when walking appears to be concentrated around the morning rush hour.

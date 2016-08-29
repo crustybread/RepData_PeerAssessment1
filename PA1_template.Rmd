@@ -195,8 +195,8 @@ You can see that the summaries are not much different (except for the 3rd quarte
 
 ```{r compare_total_steps_imputing_not_imputing, cache = TRUE, results=TRUE, echo=TRUE}
 
-print(data_sum <- sum(data$steps)) #mean steps per day without imputing NAs
-print(data1_sum <- mean(data1$steps)) # mean steps per day when imputing NAs
+print(data_sum <- sum(data$steps)) #total steps per day without imputing NAs
+print(data1_sum <- sum(data1$steps)) # total steps per day when imputing NAs
 ```
 
 #Are there differences in activity patterns between weekdays and weekends?
